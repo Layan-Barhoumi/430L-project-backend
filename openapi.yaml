@@ -1,0 +1,350 @@
+openapi: 3.0.3
+info:
+  title: LBP Exchange Tracker API
+  version: 1.0.0
+servers:
+  - url: http://localhost:5000
+paths:
+  /transaction:
+    post:
+      summary: Add a new transaction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                usd_amount:
+                  type: float
+                lbp_amount:
+                  type: float
+                usd_to_lbp:
+                  type: boolean
+              example:
+                usd_amount: 100.0
+                lbp_amount: 151275.0
+                usd_to_lbp: true
+      responses:
+        '200':
+          description: A successful response with the added transaction
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transaction'
+        '403':
+          description: Unauthorized access
+    get:
+      summary: Get all transactions for a user
+      responses:
+        '200':
+          description: A successful response with a list of transactions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Transaction'
+        '403':
+          description: Unauthorized access
+  /exchangeRate:
+    get:
+      summary: Get the average exchange rate based on the transactions of the last 3 days
+      responses:
+        '200':
+          description: A successful response with the exchange rates
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  usd_to_lbp:
+                    type: float
+                  lbp_to_usd:
+                    type: float
+                example:
+                  usd_to_lbp: "1500.00"
+                  lbp_to_usd: "0.0007"
+  /getStats:
+    get:
+      summary: Get daily and monthly statistics for the exchange rates
+      responses:
+        '200':
+          description: A successful response with the statistics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  delta_sell_usd_day:
+                    type: float
+                  delta_buy_usd_day:
+                    type: float
+                  delta_sell_usd_month:
+                    type: float
+                  delta_buy_usd_month:
+                    type: float
+                  max_sell_usd_rate:
+                    type: float
+                  max_sell_usd_rate_DATE:
+                    type: string
+                  min_sell_usd_rate:
+                    type: float
+                  min_sell_usd_rate_DATE:
+                    type: string
+                  max_buy_usd_rate:
+                    type: float
+                  max_buy_usd_rate_DATE:
+                    type: string
+                  min_buy_usd_rate:
+                    type: float
+                  min_buy_usd_rate_DATE:
+                    type: string
+  /getGraph:
+    get:
+      summary: Get the exchange rates for the past 30 days
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  days:
+                    type: array
+                    items:
+                      type: string
+                      format: date-time
+                    description: List of dates for the past 30 days
+                  sell_usd_rates:
+                    type: array
+                    items:
+                      type: number
+                      format: float
+                    description: List of sell USD rates for the past 30 days
+                  buy_usd_rates:
+                    type: array
+                    items:
+                      type: number
+                      format: float
+                    description: List of buy USD rates for the past 30 days
+    description: Retrieve exchange rates for the past 30 days
+  /postExchangeRequest:
+    post:
+      summary: Create an exchange request to buy or sell USD or LBP
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                sell:
+                  type: boolean
+                  description: Indicates whether to sell (true) or buy (false)
+                usd:
+                  type: boolean
+                  description: Indicates whether to exchange USD (true) or LBP (false)
+                amount:
+                  type: number
+                  format: float
+                  description: Amount of currency to exchange
+                location:
+                  type: string
+                  description: Location of the exchange request
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExchangeRequest'
+    description: Create a new exchange request
+  /getExchangeRequest:
+    get:
+      summary: Get all exchange requests
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ExchangeRequest'
+    description: Get all exchange requests
+  /acceptExchangeRequest:
+    post:
+      summary: Accept exchange request
+      description: Delete exchange request and update the wallets of the accepter and the requester according to the exchange rates of the day.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                request_id:
+                  type: integer
+              required:
+                - request_id
+      responses:
+        '200':
+          description: Exchange request accepted.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '400':
+          description: Bad request
+        '403':
+          description: Forbidden
+        '404':
+          description: Exchange request not found
+  /getWallet:
+    get:
+      summary: Get user's wallet balance
+      description: Returns the USD and LBP balance of the user's wallet.
+      responses:
+        '200':
+          description: Wallet balance returned.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  usd_balance:
+                    type: float
+                  lbp_balance:
+                    type: float
+        '403':
+          description: Forbidden
+  /user:
+    post:
+      summary: Create a new user
+      description: Creates a new user with a default wallet.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                user_name:
+                  type: string
+                password:
+                  type: string
+              required:
+                - user_name
+                - password
+      responses:
+        '200':
+          description: User created successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Bad request
+    components:
+      schemas:
+        User:
+          type: object
+          properties:
+            id:
+              type: integer
+            user_name:
+              type: string
+            password:
+              type: string
+          required:
+            - id
+            - user_name
+            - password
+  /authentication:
+    post:
+      summary: Authenticate a user
+      description: Authenticates a user and returns a JWT token.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                user_name:
+                  type: string
+                password:
+                  type: string
+              required:
+                - user_name
+                - password
+      responses:
+        '200':
+          description: User authenticated successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+        '400':
+          description: Bad request
+        '403':
+          description: Forbidden
+components:
+  schemas:
+    Transaction:
+      type: object
+      properties:
+        id:
+          type: integer
+        usd_amount:
+          type: number
+        lbp_amount:
+          type: number
+        usd_to_lbp:
+          type: boolean
+        added_date:
+          type: string
+          format: date-time
+      example:
+        id: 1
+        usd_amount: 100
+        lbp_amount: 151275
+        usd_to_lbp: true
+        added_date: '2023-03-09 19:08:49'
+    ExchangeRequest:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Exchange request ID
+        sell:
+          type: boolean
+          description: Indicates whether to sell (true) or buy (false)
+        usd:
+          type: boolean
+          description: Indicates whether to exchange USD (true) or LBP (false)
+        amount:
+          type: number
+          format: float
+          description: Amount of currency to exchange
+        user_id:
+          type: integer
+          description: User ID associated with the exchange request
+        location:
+          type: string
+          description: Location of the requester
+    User:
+      type: object
+      properties:
+        user_name:
+          type: string
+        password:
+          type: string
